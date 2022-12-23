@@ -8,7 +8,6 @@ from tornado.ioloop import IOLoop
 from tornado.iostream import SSLIOStream, StreamClosedError, UnsatisfiableReadError
 from tornado.log import app_log
 from tornado.netutil import ssl_options_to_context
-from tornado import stack_context
 
 from tornado_http2.connection import Connection, Params, Stream
 from tornado_http2 import constants
@@ -33,12 +32,10 @@ class Server(HTTPServer):
     def _use_http2_cleartext(self):
         return False
 
-    def handle_stream(self, stream, address):
+    async def handle_stream(self, stream, address):
         if isinstance(stream, SSLIOStream):
-            stream.wait_for_handshake(
-                functools.partial(self._handle_handshake, stream, address))
-        else:
-            self._handle_handshake(stream, address)
+            await stream.wait_for_handshake()
+        self._handle_handshake(stream, address)
 
     def _handle_handshake(self, stream, address):
         if isinstance(stream, SSLIOStream):
